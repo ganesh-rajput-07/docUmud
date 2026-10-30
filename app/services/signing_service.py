@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import hmac
 import io
@@ -10,6 +11,7 @@ from PIL import Image, UnidentifiedImageError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.models import SignatureEvent, SignatureRequest
 from app.services.storage import InvalidDocument
 
@@ -19,6 +21,13 @@ MAX_SIGNATURE_BYTES = 1_000_000
 def create_signing_token() -> tuple[str, str]:
     token = secrets.token_urlsafe(32)
     return token, hash_token(token)
+
+
+def token_for(request_id: str) -> str:
+    """The signing token for a request, derived from the server secret so reminders and resends can
+    rebuild the same link. Only its hash is stored."""
+    mac = hmac.new(settings.secret_key.encode(), b"sign-token:" + request_id.encode(), hashlib.sha256).digest()
+    return base64.urlsafe_b64encode(mac).rstrip(b"=").decode()
 
 
 def hash_token(token: str) -> str:

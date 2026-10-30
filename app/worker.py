@@ -10,6 +10,7 @@ from app.database import SessionLocal, initialize_database
 from app.models import Document, DocumentText, Job
 from app.services.ocr_service import ocr_pdf
 from app.services.pdf_processor import ProcessingError, process_pdf
+from app.services.outbox import deliver_emails, schedule_reminders
 from app.services.webhook_service import deliver_due, emit
 from app.services.storage import InvalidDocument, new_path, register_pdf, resolve
 
@@ -98,11 +99,24 @@ def main() -> None:
     initialize_database()
     recover_interrupted_jobs()
     logger.info("DocUMud worker started")
+    next_reminder_check = 0.0
     while True:
         job_id = claim_job()
         if job_id:
             process_job(job_id)
-        elif not deliver_due():
+            continue
+        if time.monotonic() >= next_reminder_check:      # reminder sweep once a minute
+            next_reminder_check = time.monotonic() + 60
+            try:
+                schedule_reminders()
+            except Exception:
+                logger.exception("Reminder sweep failed")
+        try:
+            busy = deliver_due() + deliver_emails()
+        except Exception:
+            logger.exception("Delivery loop failed")
+            busy = 0
+        if not busy:
             time.sleep(settings.poll_seconds)
 
 

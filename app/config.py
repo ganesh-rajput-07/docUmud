@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     # (falls back to SECRET_KEY). Changing it makes saved SMTP passwords unreadable.
     encryption_key: str = ""
 
+    email_delay_seconds: float = 0.5     # pause between messages on one connection
+    email_max_attempts: int = 5
+    auto_reminders: bool = True
+    reminder_after_days: int = 3
+    max_reminders: int = 2
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
