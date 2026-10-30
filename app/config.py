@@ -36,6 +36,12 @@ class Settings(BaseSettings):
     smtp_user: str = ""
     smtp_password: str = ""
     smtp_from: str = "no-reply@documud.local"
+    smtp_security: str = "starttls"      # starttls | ssl | none (platform default SMTP)
+
+    # Credentials users save for their own mailbox are encrypted with a key derived from this
+    # (falls back to SECRET_KEY). Changing it makes saved SMTP passwords unreadable.
+    encryption_key: str = ""
+
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"

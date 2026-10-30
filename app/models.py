@@ -224,3 +224,24 @@ class FillTemplate(Base):
     dataset_id: Mapped[str | None] = mapped_column(ForeignKey("datasets.id"), nullable=True)
     filename_column: Mapped[str | None] = mapped_column(String(200), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+
+class SmtpConfig(Base):
+    """A user's own outgoing mail account. The password is stored encrypted."""
+
+    __tablename__ = "smtp_configs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), unique=True, index=True)
+    host: Mapped[str] = mapped_column(String(255))
+    port: Mapped[int] = mapped_column(Integer, default=587)
+    security: Mapped[str] = mapped_column(String(8), default="starttls")  # starttls | ssl | none
+    username: Mapped[str] = mapped_column(String(255), default="")
+    password_enc: Mapped[str] = mapped_column(Text, default="")
+    from_email: Mapped[str] = mapped_column(String(255))
+    from_name: Mapped[str] = mapped_column(String(120), default="")
+    daily_limit: Mapped[int] = mapped_column(Integer, default=400)  # 0 = unlimited
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+

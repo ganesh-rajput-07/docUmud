@@ -16,3 +16,4 @@ pytest
 rapidocr-onnxruntime
 openpyxl
 fonttools
+cryptography

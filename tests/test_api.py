@@ -157,3 +157,10 @@ def test_pages_render(client):
 def test_assets_are_cache_busted(client):
     html = client.get("/dashboard").text
     assert "/static/css/app.css?v=" in html and "/static/js/dashboard.js?v=" in html
+
+
+def test_public_pages_have_no_account_nav(client):
+    """The sign-out nav on the login page redirects to itself forever; only logged-in pages may carry it."""
+    for path in ("/", "/sign/anything"):
+        assert 'id="logout"' not in client.get(path).text, path
+    assert 'id="logout"' in client.get("/dashboard").text
