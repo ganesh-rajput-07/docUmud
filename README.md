@@ -22,6 +22,14 @@ curl -H "X-API-Key: $KEY" -H "Content-Type: application/json" \
 ```
 Tag coordinates are fractions (0–1) of the page, origin top-left. Keys can't create other keys.
 
+## Fill documents from data (templates / mail-merge)
+For repeat work such as a CA preparing documents for many clients:
+1. **Data sheets** tab: upload the client list once (`.xlsx` or `.csv`, first row = column headers; up to 5,000 rows). `POST /datasets`.
+2. **Tag the document once**: on the tagging screen click a column chip, then drag a box where that value goes. Tag names are matched to column headers automatically (ignoring case and punctuation).
+3. **More → Fill from data**: pick the sheet, check the field-to-column matching, choose a font (13 bundled or your own `.ttf`/`.otf`), ink colour and alignment. All of it is saved with the document, so next time you just open the page and generate. Text shrinks to fit its box and wraps if needed; values that still don't fit are shortened with “…” and reported.
+4. **Generate** a row range as a ZIP of PDFs (named after a column you choose) or one combined PDF saved to Documents. Up to 500 PDFs per run (`FILL_MAX_ROWS`); 200 take about 6 seconds.
+API: `GET/PUT /documents/{id}/template`, `GET /documents/{id}/fill/preview.png?row=&page=`, `POST /documents/{id}/fill` (`{"start":1,"end":50,"mode":"zip"|"merged"}`), `/datasets`, `/fonts/catalog`. Tags with no matching column keep their fixed *value* (e.g. your firm name). Excel number formatting is not preserved, so format such columns as text in the sheet.
+
 ## Signatures
 Three ways to create a signature on the sign pages (yours, in person, or the email recipient's): **Draw**, **Type** (9 bundled OFL script fonts), or **Upload / scan** a photo of a pen signature, which is cleaned and made transparent in the browser (nothing is uploaded except the final PNG). Ink colour can be black, blue or dark red.
 Your own fonts: **Add your own font…** on the Type tab saves a `.ttf`/`.otf` (up to 10, 2 MB each) privately to your account (`GET/POST/DELETE /fonts`). Email recipients can load a font file for their session only; it never leaves their device. Bundled fonts live in `app/static/fonts` (see its README for licences).
@@ -45,5 +53,5 @@ Per minute: 300 per API key/session, 10 login/register per IP, 120 per IP on rec
 - **Email** – one-time link valid 7 days. Every action goes into a hash-chained audit trail with document and signed-file SHA-256.
 
 ## Not yet (do before real contracts)
-Visible stamp only, not a certificate-backed digital signature. No email OTP identity check, rate limiting or malware scan. No Alembic migrations. Tagged PDFs are not PDF/UA verified (veraPDF pending). Classification and payments are not built.
+Visible stamp only, not a certificate-backed digital signature. No email OTP identity check or malware scan. No Alembic migrations. Tagged PDFs are not PDF/UA verified (veraPDF pending). Classification and payments are not built.
 # docUmud

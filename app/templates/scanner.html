@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Scan{% endblock %}
+{% block nav %}<nav><a href="/dashboard">Documents</a><a href="/scanner">Scan</a><a href="/docs" target="_blank" rel="noopener">API docs</a></nav><button class="sm" id="logout">Sign out</button>{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Scan documents</h1>
+  <p class="muted">Use your camera or pick photos. Pages are combined in the order shown.</p>
+  <div class="row">
+    <button id="cam-start">Open camera</button>
+    <label class="btn" style="margin:0">Choose photos<input id="scan-files" type="file" accept="image/jpeg,image/png" capture="environment" multiple hidden></label>
+  </div>
+  <div id="cam-panel" hidden style="margin-top:12px">
+    <video id="cam" autoplay playsinline muted></video>
+    <div class="row" style="margin-top:8px"><button class="primary" id="cam-shot">Capture page</button><button id="cam-stop">Close camera</button></div>
+  </div>
+  <div class="thumbs" id="preview"></div>
+  <div class="row"><button class="primary" id="create-pdf" disabled>Create PDF</button><span id="scan-msg" class="msg" role="status"></span></div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/js/scanner.js?v={{ asset_v }}"></script>{% endblock %}

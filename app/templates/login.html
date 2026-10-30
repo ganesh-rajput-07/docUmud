@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<div class="auth">
+  <section>
+    <h1>Scan, sign and understand your documents.</h1>
+    <p class="muted" style="font-size:16px">One workspace for paperwork, from phone scan to signed PDF.</p>
+    <ul>
+      <li>Scan paper with your camera and turn it into a PDF</li>
+      <li>Sign yourself, in person, or send an email link</li>
+      <li>OCR makes scans searchable and extracts text</li>
+      <li>Tag data on pages and push it to your systems via API and webhooks</li>
+    </ul>
+  </section>
+  <div class="card" style="margin:0">
+    <h2 id="form-title">Sign in</h2>
+    <form id="auth-form">
+      <div id="name-row" hidden><label for="name">Full name</label><input id="name" type="text" autocomplete="name"></div>
+      <label for="email">Email</label><input id="email" type="email" required autocomplete="email">
+      <label for="password">Password <span id="pw-hint" class="muted" hidden>(min 10 characters)</span></label>
+      <input id="password" type="password" required autocomplete="current-password">
+      <p id="msg" class="msg" role="alert"></p>
+      <button class="primary" id="submit" style="width:100%;justify-content:center">Sign in</button>
+    </form>
+    {% if allow_registration %}<p class="muted" style="text-align:center;margin-bottom:0"><a href="#" id="toggle">Create an account</a></p>{% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/js/login.js?v={{ asset_v }}"></script>{% endblock %}

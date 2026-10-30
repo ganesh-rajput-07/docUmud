@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Documents{% endblock %}
+{% block nav %}<nav><a href="/dashboard">Documents</a><a href="/scanner">Scan</a><a href="/docs" target="_blank" rel="noopener">API docs</a></nav><button class="sm" id="logout">Sign out</button>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Documents</h1><p>Upload, scan, sign, OCR and tag, all in one place.</p></div>
+  <div class="row"><a class="btn" href="/scanner">Scan with camera</a></div>
+</div>
+
+<div class="stats">
+  <div class="stat"><b id="st-docs">–</b><span>Documents</span></div>
+  <div class="stat"><b id="st-pending">–</b><span>Awaiting signature</span></div>
+  <div class="stat"><b id="st-signed">–</b><span>Signed</span></div>
+  <div class="stat"><b id="st-jobs">–</b><span>Processing</span></div>
+</div>
+
+<div class="tabs-bar" role="tablist">
+  <button role="tab" data-tab="documents" aria-selected="true">Documents</button>
+  <button role="tab" data-tab="signatures" aria-selected="false">Signatures</button>
+  <button role="tab" data-tab="data" aria-selected="false">Data sheets</button>
+  <button role="tab" data-tab="processing" aria-selected="false">OCR &amp; accessibility</button>
+  <button role="tab" data-tab="developers" aria-selected="false">Developers</button>
+</div>
+
+<section id="tab-documents" role="tabpanel">
+  <div class="card">
+    <label class="dropzone" id="dropzone" for="upload-file" style="display:block;margin:0">
+      <b>Drop a PDF or image here, or click to choose</b>
+      <p class="muted" id="drop-name">PDF, JPG or PNG up to 25 MB</p>
+      <input type="file" id="upload-file" accept="application/pdf,image/jpeg,image/png" hidden>
+    </label>
+    <div class="dropzone-actions">
+      <button class="primary" id="upload-btn">Upload</button>
+      <button id="upload-tag-btn">Upload &amp; tag data</button>
+    </div>
+    <p id="upload-msg" class="msg" role="status" style="text-align:center"></p>
+  </div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <h2 style="margin:0">My documents</h2>
+      <input type="search" id="doc-filter" placeholder="Search documents…" style="max-width:240px" aria-label="Search documents">
+    </div>
+    <div id="docs"></div>
+  </div>
+</section>
+
+<section id="tab-signatures" role="tabpanel" hidden>
+  <div class="card"><h2>Signature requests</h2><p class="muted">Track who has signed. Start a request from a document's <b>More</b> menu.</p><div id="requests"></div></div>
+</section>
+
+<section id="tab-data" role="tabpanel" hidden>
+  <div class="card"><h2>Data sheets</h2>
+    <p class="muted">Upload your client list once (.xlsx or .csv, first row = headers), then fill any tagged document from it. Start from a document's <b>More → Fill from data</b>.</p>
+    <div class="row" style="margin-bottom:12px">
+      <input type="file" id="ds-file" accept=".xlsx,.xlsm,.csv" style="max-width:320px" aria-label="Data sheet file">
+      <input type="text" id="ds-sheet" placeholder="Sheet name (optional)" style="max-width:200px">
+      <button class="primary" id="ds-upload">Upload sheet</button>
+    </div>
+    <p id="ds-msg" class="msg" role="status"></p>
+    <div id="datasets"></div></div>
+</section>
+
+<section id="tab-processing" role="tabpanel" hidden>
+  <div class="card"><h2>OCR &amp; accessibility jobs</h2>
+    <p class="muted"><b>OCR</b> turns scans into searchable PDFs and extractable text. <b>Accessibility tagging</b> adds a structure tree for screen readers. It is auto-generated, not certified PDF/UA, and needs human review.</p>
+    <div id="jobs"></div></div>
+</section>
+
+<section id="tab-developers" role="tabpanel" hidden>
+  <div class="card"><h2>API keys</h2>
+    <p class="muted">Send <code>X-API-Key: dm_…</code> with any request. <a href="/docs" target="_blank" rel="noopener">Interactive API docs</a></p>
+    <div id="keys"></div>
+    <div class="row" style="margin-top:14px"><input type="text" id="key-name" placeholder="Key name, e.g. ERP integration" maxlength="80" style="max-width:300px"><button class="primary" id="key-create">Create key</button></div>
+    <p id="key-msg" class="msg" role="status"></p>
+    <pre class="snippet">curl -H "X-API-Key: $KEY" -F file=@contract.pdf <span id="base-url"></span>/documents</pre>
+  </div>
+  <div class="card"><h2>Webhooks</h2>
+    <p class="muted">Signed POSTs for <code>signature.signed</code>, <code>signature.cancelled</code>, <code>job.completed</code>, <code>job.failed</code>. The worker must be running.</p>
+    <div id="hooks"></div>
+    <div class="row" style="margin-top:14px"><input type="text" id="hook-url" placeholder="https://example.com/documud-webhook" style="max-width:380px"><button class="primary" id="hook-create">Add webhook</button></div>
+    <p id="hook-msg" class="msg" role="status"></p>
+  </div>
+</section>
+
+<dialog id="req-dialog">
+  <form id="req-form">
+    <h2>Request signature</h2>
+    <p class="muted" id="req-doc"></p>
+    <label for="req-mode">How will they sign?</label>
+    <select id="req-mode">
+      <option value="email">By email (secure link)</option>
+      <option value="in_person">In person (on this device)</option>
+    </select>
+    <label for="req-name">Signer name</label><input id="req-name" type="text">
+    <div id="req-email-row"><label for="req-email">Signer email</label><input id="req-email" type="email"></div>
+    <p id="req-msg" class="msg" role="alert"></p>
+    <div class="row"><button class="primary" id="req-submit">Create request</button><button type="button" id="req-close">Close</button></div>
+  </form>
+</dialog>
+
+<dialog id="audit-dialog" class="wide">
+  <h2>Audit trail</h2><div id="audit-body"></div>
+  <div class="row" style="margin-top:14px"><button id="audit-close">Close</button></div>
+</dialog>
+
+<dialog id="ds-dialog" class="wide">
+  <h2 id="ds-title">Data sheet</h2><p class="muted" id="ds-sub"></p>
+  <div class="table-wrap" id="ds-body" style="max-height:50vh;overflow:auto"></div>
+  <div class="row" style="margin-top:14px"><button id="ds-close">Close</button></div>
+</dialog>
+
+<dialog id="text-dialog" class="wide">
+  <h2 id="text-title">Document text</h2><p class="muted" id="text-sub"></p>
+  <pre class="text" id="text-body"></pre>
+  <div class="row"><button class="primary" id="text-copy">Copy text</button><button id="text-close">Close</button></div>
+</dialog>
+{% endblock %}
+{% block scripts %}<script src="/static/js/dashboard.js?v={{ asset_v }}"></script>{% endblock %}
