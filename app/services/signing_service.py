@@ -2,7 +2,6 @@ import base64
 import hashlib
 import hmac
 import io
-import secrets
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -16,11 +15,6 @@ from app.models import SignatureEvent, SignatureRequest
 from app.services.storage import InvalidDocument
 
 MAX_SIGNATURE_BYTES = 1_000_000
-
-
-def create_signing_token() -> tuple[str, str]:
-    token = secrets.token_urlsafe(32)
-    return token, hash_token(token)
 
 
 def token_for(request_id: str) -> str:

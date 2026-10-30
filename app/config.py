@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     auto_reminders: bool = True
     reminder_after_days: int = 3
     max_reminders: int = 2
+    require_signer_otp: bool = True      # email signers verify a code (when the sender can send email)
+    otp_minutes: int = 10
+    otp_max_attempts: int = 5
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
