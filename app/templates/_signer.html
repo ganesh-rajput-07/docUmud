@@ -1,0 +1,60 @@
+<div class="card">
+  <h2>1. Your signature</h2>
+  <div class="tabs" role="tablist" aria-label="Signature method">
+    <button type="button" class="active" data-tab="draw">Draw</button>
+    <button type="button" data-tab="type">Type</button>
+    <button type="button" data-tab="upload">Upload / scan</button>
+  </div>
+
+  <div id="tab-draw"><canvas id="pad" width="600" height="200" aria-label="Draw your signature here"></canvas>
+    <div><button type="button" class="sm" id="pad-clear">Clear</button></div></div>
+
+  <div id="tab-type" hidden>
+    <label for="typed">Type your name</label><input id="typed" type="text" maxlength="60" autocomplete="off">
+    <label>Choose a style</label>
+    <div id="font-grid" class="font-grid"></div>
+    <div class="row" style="margin-top:10px">
+      <button type="button" class="sm" id="font-add">Add your own font…</button>
+      <input type="file" id="font-file" accept=".ttf,.otf,font/ttf,font/otf" hidden>
+      <span class="muted" id="font-note">.ttf or .otf</span>
+    </div>
+  </div>
+
+  <div id="tab-upload" hidden>
+    <p class="muted" style="margin-top:0">Sign with a dark pen on plain white paper, then upload or photograph it. The background is removed automatically.</p>
+    <div class="row">
+      <button type="button" id="img-pick">Upload image</button>
+      <button type="button" id="img-scan">Take photo</button>
+      <input type="file" id="img-file" accept="image/*" hidden>
+      <input type="file" id="img-cam" accept="image/*" capture="environment" hidden>
+    </div>
+    <div class="row" style="margin-top:10px"><label for="img-clean" style="margin:0">Remove faint marks</label>
+      <input id="img-clean" type="range" min="0.05" max="0.4" step="0.01" value="0.15" style="width:170px" disabled></div>
+    <p class="msg" id="img-msg" role="status"></p>
+  </div>
+
+  <div class="row" style="margin-top:14px">
+    <span class="muted">Ink</span>
+    <button type="button" class="swatch" data-ink="#111111" style="background:#111111" aria-label="Black ink" aria-pressed="true"></button>
+    <button type="button" class="swatch" data-ink="#1d4ed8" style="background:#1d4ed8" aria-label="Blue ink" aria-pressed="false"></button>
+    <button type="button" class="swatch" data-ink="#7f1d1d" style="background:#7f1d1d" aria-label="Dark red ink" aria-pressed="false"></button>
+  </div>
+  <label>Preview</label>
+  <div class="checker"><canvas id="out" width="600" height="200" aria-label="Signature preview"></canvas></div>
+</div>
+<div class="card">
+  <h2>2. Place it on the page</h2>
+  <p class="muted">Click or drag on the page to position your signature.</p>
+  <div class="row" style="margin-bottom:10px">
+    <button type="button" class="sm" id="prev">‹ Prev</button><span id="page-label"></span><button type="button" class="sm" id="next">Next ›</button>
+    <label style="margin:0 0 0 12px">Size</label><input id="sig-size" type="range" min="0.1" max="0.6" step="0.01" value="0.28" style="width:140px">
+  </div>
+  <div class="pagewrap" id="pagewrap"><img id="page-img" alt="Document page"><div class="sigbox" id="sigbox" hidden><img id="sigbox-img" alt=""></div></div>
+</div>
+<div class="card">
+  <h2>3. Confirm</h2>
+  <label for="signer-name">Full name</label><input id="signer-name" type="text" maxlength="120">
+  {% if consent %}<label style="display:flex;gap:8px;align-items:flex-start;color:var(--text);font-size:14px"><input type="checkbox" id="consent" style="margin-top:4px"> I have reviewed this document and intend to apply my signature electronically.</label>{% endif %}
+  <p id="status" class="msg" role="alert"></p>
+  <button class="primary" id="submit-signature">Sign document</button>
+</div>

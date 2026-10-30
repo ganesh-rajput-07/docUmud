@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Review &amp; sign{% endblock %}
+{% block content %}
+<div class="card" id="intro"><h1>Review and sign</h1><p id="intro-text" class="muted">Loading…</p>
+  <p><a id="open-pdf" class="btn sm" target="_blank" rel="noopener">Open full PDF</a></p></div>
+<div id="signer-area" hidden>{% with consent=true %}{% include "_signer.html" %}{% endwith %}</div>
+<div class="card" id="done" hidden><h1>Signed ✔</h1><p id="done-text"></p><a id="back" class="btn" href="/dashboard" hidden>Back to dashboard</a></div>
+<div class="card" id="error" hidden><h1>Unavailable</h1><p id="error-text" class="msg error"></p></div>
+{% endblock %}
+{% block scripts %}
+<script>window.SIGN = {mode:"public", token:"{{ token }}"};</script>
+<script src="/static/js/signer.js?v={{ asset_v }}"></script>
+{% endblock %}
