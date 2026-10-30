@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Tag data{% endblock %}
+{% block nav %}<nav><a href="/dashboard">Documents</a><a href="/scanner">Scan</a><a href="/docs" target="_blank" rel="noopener">API docs</a></nav><button class="sm" id="logout">Sign out</button>{% endblock %}
+{% block content %}
+<div class="tagger">
+  <div>
+    <div class="card">
+      <h1 id="doc-title">Tag data</h1>
+      <div class="row" style="margin-bottom:10px"><label for="doc-switch" style="margin:0">Document</label><select id="doc-switch" style="max-width:320px"></select></div>
+      <p class="muted">Drag on the page to draw a tag. Click an existing tag to edit it.</p>
+      <div class="row" style="margin-bottom:10px">
+        <button type="button" class="sm" id="prev">‹ Prev</button><span id="page-label"></span><button type="button" class="sm" id="next">Next ›</button>
+        <label style="margin:0 0 0 12px">New tag label</label>
+        <input id="default-label" type="text" list="label-presets" value="Name" maxlength="80" style="width:170px">
+        <datalist id="label-presets"><option>Name</option><option>Date</option><option>Address</option><option>Amount</option><option>Invoice No</option><option>Email</option><option>Phone</option><option>Signature</option><option>Other</option></datalist>
+      </div>
+      <div class="pagewrap" id="pagewrap"><img id="page-img" alt="Document page"><div id="overlay"></div><div class="sigbox" id="draft" hidden></div></div>
+    </div>
+  </div>
+  <aside>
+    <div class="card" id="editor" hidden>
+      <h2>Selected tag</h2>
+      <label for="t-label">Label</label><input id="t-label" type="text" list="label-presets" maxlength="80">
+      <label for="t-value">Value (optional)</label><input id="t-value" type="text" maxlength="2000">
+      <div class="row" style="margin-top:12px"><button class="sm" id="t-delete">Delete tag</button></div>
+    </div>
+    <div class="card" id="cols-card" hidden>
+      <h2>Columns from your data</h2>
+      <p class="muted">Click a column, then drag on the page. Tags are matched to columns by name.</p>
+      <div id="chips" class="chips"></div>
+    </div>
+    <div class="card">
+      <h2>Tags <span class="muted" id="count"></span></h2>
+      <div id="tag-list"></div>
+      <div class="row" style="margin-top:12px"><button class="sm" id="export">Export JSON</button><button class="sm" id="export-pdf">Save tags into PDF</button>
+      <a class="btn sm primary" id="fill-link" href="#">Fill from data →</a></div>
+      <p id="status" class="msg" role="alert"></p>
+    </div>
+  </aside>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>window.TAGGER = {documentId:"{{ document_id }}"};</script>
+<script src="/static/js/tagger.js?v={{ asset_v }}"></script>
+{% endblock %}
