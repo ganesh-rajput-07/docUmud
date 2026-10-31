@@ -2,6 +2,7 @@
 {% block title %}Documents{% endblock %}
 {% block nav %}<nav><a href="/dashboard">Documents</a><a href="/scanner">Scan</a><a href="/settings/email">Email settings</a><a href="/docs" target="_blank" rel="noopener">API docs</a></nav><button class="sm" id="logout">Sign out</button>{% endblock %}
 {% block content %}
+<div id="mail-banner" class="banner" hidden></div>
 <div class="page-head">
   <div><h1>Documents</h1><p>Upload, scan, sign, OCR and tag, all in one place.</p></div>
   <div class="row"><a class="btn" href="/scanner">Scan with camera</a></div>
@@ -45,6 +46,7 @@
 </section>
 
 <section id="tab-signatures" role="tabpanel" hidden>
+  <div class="card"><h2>Bulk sends</h2><p class="muted">Send a document to everyone in a data sheet. Start from a document's <b>More → Send in bulk</b>.</p><div id="batches"></div></div>
   <div class="card"><h2>Signature requests</h2><p class="muted">Track who has signed. Start a request from a document's <b>More</b> menu.</p><div id="requests"></div></div>
 </section>
 
