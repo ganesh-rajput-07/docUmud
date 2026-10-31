@@ -2,7 +2,7 @@ const $ = id => document.getElementById(id);
 const { el, badge, fmtDate, api, toast } = DM;
 const state = { docs: [], reqs: [], jobs: [] };
 const SERVICE = { ocr: "OCR", pdf_tagging: "Accessibility tagging" };
-const SOURCE = { uploaded: "Uploaded", scanned: "Scanned", signed: "Signed", tagged: "Accessible", ocr: "OCR", annotated: "Annotated", filled: "Filled" };
+const SOURCE = { batch: "Batch copy", uploaded: "Uploaded", scanned: "Scanned", signed: "Signed", tagged: "Accessible", ocr: "OCR", annotated: "Annotated", filled: "Filled" };
 
 // Skip re-rendering when polled data is unchanged, and never rebuild the table under an open menu.
 const seen = {};
@@ -79,6 +79,7 @@ function renderDocs() {
       menu([
         link("Sign it myself", `/documents/${d.id}/sign`),
         item("Request signature…", () => openRequest(d)),
+        link("Send in bulk…", `/documents/${d.id}/bulk`),
         el("hr"),
         link("Fill from data", `/documents/${d.id}/fill`),
         link("Tag data", `/documents/${d.id}/tagger`),
@@ -126,6 +127,10 @@ async function loadRequests() {
     el("td", {}, badge(r.status)), el("td", {}, fmtDate(r.signed_at || r.created_at)),
     el("td", { class: "actions" },
       r.status === "signed" && btn("Download signed", () => dl(r.signed_document_id, "signed.pdf")),
+      r.status === "signed" && btn("Certificate", () => DM.download(`/signing/requests/${r.id}/certificate`, "certificate.pdf").catch(fail)),
+      r.status === "pending" && r.mode === "email" && r.recipient_email && btn("Remind", async () => {
+        try { await api(`/signing/requests/${r.id}/remind`, { method: "POST" }); toast(`Reminder queued for ${r.recipient_email}`, "ok"); } catch (e) { fail(e); }
+      }),
       r.status === "pending" && btn("Cancel", async () => {
         if (!confirm("Cancel this signature request?")) return;
         try { await api(`/signing/requests/${r.id}/cancel`, { method: "POST" }); await loadRequests(); toast("Request cancelled"); } catch (e) { fail(e); }
@@ -223,6 +228,31 @@ $("text-copy").addEventListener("click", async () => {
   try { await navigator.clipboard.writeText(currentText); toast("Copied", "ok"); } catch { toast("Copy failed", "error"); }
 });
 
+// ---------- bulk sends ----------
+async function loadBatches() {
+  const list = await api("/bulk");
+  if (!changed("batches", list)) return;
+  table("batches", ["Name", "Progress", "Waiting", "Email problems", "Created", ""], list.map(b => el("tr", {},
+    el("td", { class: "name", title: b.name }, b.name),
+    el("td", {}, `${b.signed} / ${b.total} signed`), el("td", {}, String(b.pending)),
+    el("td", {}, b.email_failed ? el("span", { class: "badge failed" }, String(b.email_failed)) : "-"),
+    el("td", {}, fmtDate(b.created_at)),
+    el("td", { class: "actions" }, el("a", { class: "btn sm", href: `/sends/${b.id}` }, "Open")))),
+    ["No bulk sends yet", "Open a document's More menu and choose Send in bulk."]);
+}
+
+// ---------- email account banner ----------
+async function loadMailBanner() {
+  const m = await api("/email/settings"), b = $("mail-banner"), s = m.settings;
+  if (m.source === "none") {
+    b.className = "banner"; b.hidden = false;
+    b.replaceChildren("Connect your email so signature requests are sent from your own address (Gmail, Outlook or any SMTP). ", el("a", { href: "/settings/email" }, "Set up email"));
+  } else if (s && !s.verified_at) {
+    b.className = "banner bad"; b.hidden = false;
+    b.replaceChildren("Your email account needs attention: ", s.last_error || "not verified yet", ". ", el("a", { href: "/settings/email" }, "Fix it"));
+  } else b.hidden = true;
+}
+
 // ---------- data sheets ----------
 async function loadDatasets() {
   const list = await api("/datasets");
@@ -304,4 +334,4 @@ $("hook-create").addEventListener("click", async () => {
   } catch (e) { note(m, e.message, "error"); }
 });
 
-Promise.all([loadDocs(), loadRequests(), loadJobs(), loadKeys(), loadHooks(), loadDatasets()]).catch(fail);
+Promise.all([loadDocs(), loadRequests(), loadJobs(), loadKeys(), loadHooks(), loadDatasets(), loadBatches(), loadMailBanner()]).catch(fail);

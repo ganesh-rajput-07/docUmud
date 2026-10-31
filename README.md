@@ -55,3 +55,10 @@ Per minute: 300 per API key/session, 10 login/register per IP, 120 per IP on rec
 ## Not yet (do before real contracts)
 Visible stamp only, not a certificate-backed digital signature. No email OTP identity check or malware scan. No Alembic migrations. Tagged PDFs are not PDF/UA verified (veraPDF pending). Classification and payments are not built.
 # docUmud
+
+## Email, reminders and bulk signing
+- **Your own mailbox:** *Email settings* connects Gmail (app password), Outlook, Zoho, SendGrid, SES or any SMTP server. Invitations, reminders, verification codes and signed copies go out from that address. Passwords are encrypted at rest (`ENCRYPTION_KEY`, defaults to a key derived from `SECRET_KEY`) and never returned by the API. A platform-wide SMTP in `.env` is only a fallback.
+- **Queue and retries:** emails are delivered by the worker (`python -m app.worker`) with retries, a per-account daily limit (default 400, so Gmail caps are respected) and automatic reminders after 3 days (up to 2).
+- **Signer verification:** email signers must enter a 6-digit code sent to their address before they can open or sign the document (`REQUIRE_SIGNER_OTP`, on whenever the sender has a working mailbox). Every step is recorded in the audit trail, and a *Certificate of Completion* PDF is available per signed request.
+- **Bulk send:** *More → Send in bulk* sends a document to every row of a data sheet (up to 500), optionally filling each person's copy from the sheet first. The batch page tracks delivery and signing live, reminds, retries failed emails, cancels, and exports a status CSV, the signing links (to share by WhatsApp when no mailbox is connected) and a ZIP of signed PDFs.
+- API: `/email/settings`, `/bulk/preview`, `/bulk`, `/bulk/{id}`, `/signing/requests/{id}/remind|certificate`.

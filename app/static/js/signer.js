@@ -12,7 +12,8 @@ const src = Object.assign(document.createElement("canvas"), { width: W, height: 
 const srcCtx = src.getContext("2d");
 
 let tab = "draw", ink = "#111111", drawn = false, drawing = false, uploadReady = false;
-let page = 0, pageCount = 1, info = null;
+let page = 0, pageCount = 1, info = null, verifyToken = null;
+const vq = () => (verifyToken ? `?v=${encodeURIComponent(verifyToken)}` : "");
 const place = { x: 0.55, y: 0.35, placed: false };
 
 const setStatus = (text, cls = "") => { const s = $("status"); s.className = `msg ${cls}`; s.textContent = text; };
@@ -271,7 +272,7 @@ async function loadPage() {
   $("page-label").textContent = `Page ${page + 1} of ${pageCount}`;
   $("prev").disabled = page === 0; $("next").disabled = page >= pageCount - 1;
   try {
-    const url = isOwn ? await DM.blobUrl(`/documents/${cfg.documentId}/pages/${page}.png`) : pub(`/pages/${page}.png`);
+    const url = isOwn ? await DM.blobUrl(`/documents/${cfg.documentId}/pages/${page}.png`) : pub(`/pages/${page}.png`) + vq();
     if (lastUrl) URL.revokeObjectURL(lastUrl);
     lastUrl = isOwn ? url : null;
     pageImg.src = url;
@@ -307,7 +308,7 @@ $("submit-signature").addEventListener("click", async () => {
       setTimeout(() => (location.href = "/dashboard"), 900);
       return;
     }
-    const res = await fetch(pub("/sign"), { method: "POST", body: form });
+    const res = await fetch(pub("/sign"), { method: "POST", body: form, headers: verifyToken ? { "X-Verify": verifyToken } : {} });
     const body = await res.json().catch(() => null);
     if (!res.ok) throw new Error(DM.errorText(body, res.status));
     $("signer-area").hidden = true; $("intro").hidden = true; $("done").hidden = false;
@@ -315,6 +316,47 @@ $("submit-signature").addEventListener("click", async () => {
     if (DM.token() && info?.mode === "in_person") { $("back").hidden = false; $("done-text").textContent = "Signature recorded. Please hand the device back."; }
   } catch (e) { setStatus(e.message, "error"); $("submit-signature").disabled = false; }
 });
+
+// ---------------- email-code verification (recipients) ----------------
+const otpMsg = (t, cls = "") => { $("otp-msg").className = `msg ${cls}`; $("otp-msg").textContent = t; };
+async function startPublic() {
+  $("signer-area").hidden = false;
+  $("open-pdf").href = pub("/document") + vq();
+  fetch(pub("/viewed") + vq(), { method: "POST", headers: verifyToken ? { "X-Verify": verifyToken } : {} });
+  await loadPage();
+}
+function showOtp() {
+  $("otp-card").hidden = false;
+  $("otp-text").textContent = `To protect this document, we'll email a 6-digit code to ${info.email_hint}.`;
+}
+async function otpCall(path, body) {
+  const res = await fetch(pub(path), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(DM.errorText(data, res.status));
+  return data;
+}
+$("otp-send").addEventListener("click", async () => {
+  $("otp-send").disabled = true; otpMsg("Sending…");
+  try {
+    const r = await otpCall("/otp/send");
+    $("otp-entry").hidden = false; $("otp-code").focus();
+    otpMsg(`Code sent to ${r.email_hint}. It expires in ${r.expires_minutes} minutes.`, "ok");
+    $("otp-send").textContent = "Send a new code";
+    setTimeout(() => { $("otp-send").disabled = false; }, 30000);
+  } catch (e) { otpMsg(e.message, "error"); $("otp-send").disabled = false; }
+});
+$("otp-verify").addEventListener("click", async () => {
+  const code = $("otp-code").value.replace(/\D/g, "");
+  if (code.length !== 6) return otpMsg("Enter the 6-digit code from your email.", "error");
+  $("otp-verify").disabled = true;
+  try {
+    verifyToken = (await otpCall("/otp/verify", { code })).verify_token;
+    $("otp-card").hidden = true;
+    await startPublic();
+  } catch (e) { otpMsg(e.message, "error"); }
+  $("otp-verify").disabled = false;
+});
+$("otp-code").addEventListener("keydown", e => { if (e.key === "Enter") $("otp-verify").click(); });
 
 // ---------------- init ----------------
 (async () => {
@@ -336,8 +378,9 @@ $("submit-signature").addEventListener("click", async () => {
       $("open-pdf").href = pub("/document");
       $("signer-name").value = info.recipient_name || ""; $("typed").value = info.recipient_name || "";
       renderFontGrid();
-      $("signer-area").hidden = false;
-      fetch(pub("/viewed"), { method: "POST" });
+      if (info.otp_required) { showOtp(); return; }
+      await startPublic();
+      return;
     }
     await loadPage();
   } catch (e) {
