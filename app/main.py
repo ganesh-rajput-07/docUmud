@@ -112,6 +112,16 @@ def email_settings_page(request: Request):
     return _page(request, "email_settings.html")
 
 
+@app.get("/documents/{document_id}/bulk")
+def bulk_send_page(document_id: str, request: Request):
+    return _page(request, "bulk_send.html", document_id=document_id)
+
+
+@app.get("/sends/{batch_id}")
+def bulk_batch_page(batch_id: str, request: Request):
+    return _page(request, "bulk_batch.html", batch_id=batch_id)
+
+
 @app.get("/sign/{token}")
 def recipient_page(token: str, request: Request):
     return _page(request, "sign_document.html", token=token)

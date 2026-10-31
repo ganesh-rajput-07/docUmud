@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Bulk send{% endblock %}
+{% block nav %}<nav><a href="/dashboard">Documents</a><a href="/scanner">Scan</a><a href="/settings/email">Email settings</a><a href="/docs" target="_blank" rel="noopener">API docs</a></nav><button class="sm" id="logout">Sign out</button>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1 id="title">Bulk send</h1><p id="sub" class="muted"></p></div>
+  <div class="row"><a class="btn" href="/dashboard#signatures">‹ All bulk sends</a></div>
+</div>
+<div id="banner" class="banner" hidden></div>
+<div class="stats">
+  <div class="stat"><b id="t-total">–</b><span>Recipients</span></div>
+  <div class="stat"><b id="t-signed">–</b><span>Signed</span></div>
+  <div class="stat"><b id="t-pending">–</b><span>Waiting</span></div>
+  <div class="stat"><b id="t-problems">–</b><span>Email problems</span></div>
+</div>
+<div class="card">
+  <div class="progress" aria-label="Signing progress"><div id="bar"></div></div>
+  <div class="row" style="margin-top:14px">
+    <button class="sm" id="remind">Remind everyone waiting</button>
+    <button class="sm" id="retry" hidden>Retry failed emails</button>
+    <button class="sm danger" id="cancel">Cancel pending</button>
+    <span style="flex:1"></span>
+    <button class="sm" id="dl-signed">Download signed (ZIP)</button>
+    <button class="sm" id="dl-csv">Status report (CSV)</button>
+    <button class="sm" id="dl-links">Signing links (CSV)</button>
+  </div>
+  <div id="items" style="margin-top:12px"></div>
+</div>
+{% endblock %}
+{% block scripts %}<script>window.BATCH = {id:"{{ batch_id }}"};</script>
+<script src="/static/js/bulk_batch.js?v={{ asset_v }}"></script>{% endblock %}
