@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Email settings{% endblock %}
+{% block nav %}<nav><a href="/dashboard">Documents</a><a href="/scanner">Scan</a><a href="/settings/email">Email settings</a><a href="/docs" target="_blank" rel="noopener">API docs</a></nav><button class="sm" id="logout">Sign out</button>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Email settings</h1><p>Invitations, reminders and verification codes are sent from <b>your own mailbox</b>, so signers see your name and address.</p></div>
+  <span id="status-badge" class="badge neutral">Loading…</span>
+</div>
+
+<div class="card narrow-wide">
+  <h2>Connect your email account</h2>
+  <p class="muted">Use Gmail with an app password, or any SMTP server. Your password is stored encrypted and is never shown again.</p>
+  <form id="smtp-form" autocomplete="off">
+    <label for="provider">Provider</label>
+    <select id="provider"></select>
+    <div class="help" id="provider-help" hidden></div>
+
+    <div class="grid2">
+      <div><label for="host">SMTP server</label><input id="host" type="text" placeholder="smtp.gmail.com" required></div>
+      <div><label for="port">Port</label><input id="port" type="number" min="1" max="65535" required></div>
+    </div>
+    <label for="security">Security</label>
+    <select id="security">
+      <option value="starttls">STARTTLS (usually port 587)</option>
+      <option value="ssl">SSL/TLS (usually port 465)</option>
+      <option value="none">None (not recommended)</option>
+    </select>
+    <div class="grid2">
+      <div><label for="username">Username <span class="muted">(usually your full email)</span></label><input id="username" type="text" autocomplete="off"></div>
+      <div><label for="password">Password / app password</label>
+        <div class="pw"><input id="password" type="password" autocomplete="new-password"><button type="button" class="sm" id="pw-toggle" aria-label="Show password">Show</button></div></div>
+    </div>
+    <div class="grid2">
+      <div><label for="from_name">From name</label><input id="from_name" type="text" maxlength="120" placeholder="Acme Chartered Accountants"></div>
+      <div><label for="from_email">From email <span class="muted">(optional)</span></label><input id="from_email" type="text" placeholder="same as username"></div>
+    </div>
+    <label for="daily_limit">Daily sending limit <span class="muted">(0 = unlimited). Extra emails wait and send automatically the next day.</span></label>
+    <input id="daily_limit" type="number" min="0" style="max-width:140px">
+
+    <p id="msg" class="msg" role="status"></p>
+    <div class="row">
+      <button class="primary" id="save">Save &amp; verify</button>
+      <button type="button" id="test">Send test email to me</button>
+      <button type="button" class="danger" id="remove" hidden>Remove</button>
+    </div>
+  </form>
+</div>
+
+<div class="card narrow-wide">
+  <h2>How sending works</h2>
+  <ul class="plain">
+    <li>Bulk sends are queued and delivered in the background by the worker, with automatic retries.</li>
+    <li>Signers are reminded automatically after 3 days (up to 2 times). You can also remind anytime.</li>
+    <li>If you haven't connected an account, links are still created and can be exported and shared (WhatsApp, etc.).</li>
+  </ul>
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/js/email_settings.js?v={{ asset_v }}"></script>{% endblock %}

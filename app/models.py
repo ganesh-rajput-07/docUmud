@@ -224,3 +224,86 @@ class FillTemplate(Base):
     dataset_id: Mapped[str | None] = mapped_column(ForeignKey("datasets.id"), nullable=True)
     filename_column: Mapped[str | None] = mapped_column(String(200), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+
+class SmtpConfig(Base):
+    """A user's own outgoing mail account. The password is stored encrypted."""
+
+    __tablename__ = "smtp_configs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), unique=True, index=True)
+    host: Mapped[str] = mapped_column(String(255))
+    port: Mapped[int] = mapped_column(Integer, default=587)
+    security: Mapped[str] = mapped_column(String(8), default="starttls")  # starttls | ssl | none
+    username: Mapped[str] = mapped_column(String(255), default="")
+    password_enc: Mapped[str] = mapped_column(Text, default="")
+    from_email: Mapped[str] = mapped_column(String(255))
+    from_name: Mapped[str] = mapped_column(String(120), default="")
+    daily_limit: Mapped[int] = mapped_column(Integer, default=400)  # 0 = unlimited
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+
+class EmailOutbox(Base):
+    """Signature-related emails waiting to be sent by the worker. Bodies are rendered at send time."""
+
+    __tablename__ = "email_outbox"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)  # sender whose mailbox is used
+    request_id: Mapped[str] = mapped_column(ForeignKey("signature_requests.id"), index=True)
+    batch_id: Mapped[str | None] = mapped_column(ForeignKey("bulk_batches.id"), nullable=True, index=True)
+    kind: Mapped[str] = mapped_column(String(20))  # invite | reminder | signed_sender | signed_signer
+    to_email: Mapped[str] = mapped_column(String(255))
+    # pending | sent | failed | not_configured | cancelled
+    status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    next_attempt_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class BulkBatch(Base):
+    __tablename__ = "bulk_batches"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    document_id: Mapped[str] = mapped_column(ForeignKey("documents.id"))
+    dataset_id: Mapped[str | None] = mapped_column(ForeignKey("datasets.id"), nullable=True)
+    name: Mapped[str] = mapped_column(String(200))
+    personalize: Mapped[bool] = mapped_column(Boolean, default=False)
+    subject: Mapped[str] = mapped_column(String(200), default="")
+    message: Mapped[str] = mapped_column(Text, default="")
+    expires_days: Mapped[int] = mapped_column(Integer, default=7)
+    total: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class BulkItem(Base):
+    __tablename__ = "bulk_items"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    batch_id: Mapped[str] = mapped_column(ForeignKey("bulk_batches.id"), index=True)
+    request_id: Mapped[str] = mapped_column(ForeignKey("signature_requests.id"), unique=True)
+    document_id: Mapped[str] = mapped_column(ForeignKey("documents.id"))  # the copy this person signs
+    row_index: Mapped[int] = mapped_column(Integer)  # 1-based row in the data sheet
+    name: Mapped[str] = mapped_column(String(120), default="")
+    email: Mapped[str] = mapped_column(String(255))
+
+
+class SignerSession(Base):
+    """One emailed verification code, and the access token issued once it is entered correctly."""
+
+    __tablename__ = "signer_sessions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    request_id: Mapped[str] = mapped_column(ForeignKey("signature_requests.id"), index=True)
+    code_hash: Mapped[str] = mapped_column(String(64))
+    code_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    access_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

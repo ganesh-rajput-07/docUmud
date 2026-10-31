@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import SessionLocal, initialize_database
 from app.services.rate_limit import classify, limiter
-from app.routers import api_keys, auth, datasets, documents, fill, fonts, jobs, scanner, signing, tags, webhooks
+from app.routers import api_keys, auth, bulk, datasets, documents, email_settings, fill, fonts, jobs, scanner, signing, tags, webhooks
 
 BASE = Path(__file__).parent
 
@@ -32,7 +32,7 @@ app = FastAPI(
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 templates = Jinja2Templates(directory=BASE / "templates")
 
-for r in (auth, api_keys, documents, tags, fill, datasets, fonts, jobs, scanner, signing, webhooks):
+for r in (auth, api_keys, email_settings, documents, tags, fill, datasets, bulk, fonts, jobs, scanner, signing, webhooks):
     app.include_router(r.router)
 
 
@@ -105,6 +105,21 @@ def tag_page(document_id: str, request: Request):
 @app.get("/documents/{document_id}/fill")
 def fill_page(document_id: str, request: Request):
     return _page(request, "fill.html", document_id=document_id)
+
+
+@app.get("/settings/email")
+def email_settings_page(request: Request):
+    return _page(request, "email_settings.html")
+
+
+@app.get("/documents/{document_id}/bulk")
+def bulk_send_page(document_id: str, request: Request):
+    return _page(request, "bulk_send.html", document_id=document_id)
+
+
+@app.get("/sends/{batch_id}")
+def bulk_batch_page(batch_id: str, request: Request):
+    return _page(request, "bulk_batch.html", batch_id=batch_id)
 
 
 @app.get("/sign/{token}")

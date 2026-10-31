@@ -82,10 +82,14 @@ def upload(
 
 
 @router.get("")
-def list_documents(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    docs = db.scalars(
-        select(Document).where(Document.user_id == user.id).order_by(Document.created_at.desc())
-    ).all()
+def list_documents(
+    include_batch: bool = False, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+):
+    """Your documents. Per-recipient copies made by bulk sends are hidden unless `include_batch=true`."""
+    query = select(Document).where(Document.user_id == user.id).order_by(Document.created_at.desc())
+    if not include_batch:
+        query = query.where(Document.source.not_in(("batch", "batch-signed")))
+    docs = db.scalars(query).all()
     return [doc_out(d) for d in docs]
 
 

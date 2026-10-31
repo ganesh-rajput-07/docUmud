@@ -3,6 +3,19 @@
 {% block content %}
 <div class="card" id="intro"><h1>Review and sign</h1><p id="intro-text" class="muted">Loading…</p>
   <p><a id="open-pdf" class="btn sm" target="_blank" rel="noopener">Open full PDF</a></p></div>
+<div class="card" id="otp-card" hidden>
+  <h2>Verify your email</h2>
+  <p class="muted" id="otp-text">We'll email a 6-digit code to confirm it's you.</p>
+  <div class="row">
+    <button type="button" class="primary" id="otp-send">Send me a code</button>
+  </div>
+  <div id="otp-entry" hidden style="margin-top:14px">
+    <label for="otp-code">Enter the 6-digit code</label>
+    <div class="row"><input id="otp-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" style="max-width:160px;letter-spacing:.2em;font-size:18px">
+      <button type="button" class="primary" id="otp-verify">Verify</button></div>
+  </div>
+  <p id="otp-msg" class="msg" role="status"></p>
+</div>
 <div id="signer-area" hidden>{% with consent=true %}{% include "_signer.html" %}{% endwith %}</div>
 <div class="card" id="done" hidden><h1>Signed ✔</h1><p id="done-text"></p><a id="back" class="btn" href="/dashboard" hidden>Back to dashboard</a></div>
 <div class="card" id="error" hidden><h1>Unavailable</h1><p id="error-text" class="msg error"></p></div>
