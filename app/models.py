@@ -293,3 +293,17 @@ class BulkItem(Base):
     name: Mapped[str] = mapped_column(String(120), default="")
     email: Mapped[str] = mapped_column(String(255))
 
+
+class SignerSession(Base):
+    """One emailed verification code, and the access token issued once it is entered correctly."""
+
+    __tablename__ = "signer_sessions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    request_id: Mapped[str] = mapped_column(ForeignKey("signature_requests.id"), index=True)
+    code_hash: Mapped[str] = mapped_column(String(64))
+    code_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    access_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Send in bulk{% endblock %}
+{% block nav %}<nav><a href="/dashboard">Documents</a><a href="/scanner">Scan</a><a href="/settings/email">Email settings</a><a href="/docs" target="_blank" rel="noopener">API docs</a></nav><button class="sm" id="logout">Sign out</button>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1 id="title">Send for signature in bulk</h1><p>Send one document to everyone in a data sheet. Each person gets their own secure link.</p></div>
+</div>
+<div id="mail-banner" class="banner" hidden></div>
+
+<div class="tagger">
+  <div>
+    <div class="card">
+      <h2>1 · Recipients</h2>
+      <div class="grid2">
+        <div><label for="ds">Data sheet</label><select id="ds"></select></div>
+        <div style="align-self:end"><button type="button" class="sm" id="ds-upload">Upload new sheet…</button><input type="file" id="ds-file" accept=".xlsx,.xlsm,.csv" hidden></div>
+      </div>
+      <div class="grid2">
+        <div><label for="email-col">Email column</label><select id="email-col"></select></div>
+        <div><label for="name-col">Name column</label><select id="name-col"></select></div>
+      </div>
+      <div class="grid2">
+        <div><label for="from-row">From row</label><input type="number" id="from-row" min="1"></div>
+        <div><label for="to-row">To row</label><input type="number" id="to-row" min="1"></div>
+      </div>
+      <div id="check" class="check" aria-live="polite"></div>
+    </div>
+
+    <div class="card">
+      <h2>2 · Message</h2>
+      <label for="batch-name">Batch name</label><input id="batch-name" type="text" maxlength="200">
+      <label for="subject">Subject <span class="muted">(optional; use {name} and {document})</span></label>
+      <input id="subject" type="text" maxlength="200" placeholder="Please sign {document}">
+      <label for="message">Message <span class="muted">(optional)</span></label>
+      <textarea id="message" rows="4" maxlength="1000" placeholder="Hi {name}, please review and sign by Friday."></textarea>
+      <div class="grid2">
+        <div><label for="expires">Link valid for</label>
+          <select id="expires"><option value="3">3 days</option><option value="7" selected>7 days</option><option value="14">14 days</option><option value="30">30 days</option></select></div>
+      </div>
+    </div>
+  </div>
+
+  <aside>
+    <div class="card">
+      <h2>3 · Personalise</h2>
+      <label class="check-row"><input type="checkbox" id="personalize"> <span>Fill each person's copy from the sheet</span></label>
+      <p class="muted" id="pers-note"></p>
+    </div>
+    <div class="card">
+      <h2>4 · Send</h2>
+      <p class="muted" id="send-from"></p>
+      <p id="send-msg" class="msg" role="status"></p>
+      <button class="primary" id="send" style="width:100%;justify-content:center" disabled>Send</button>
+      <p class="muted" style="margin-top:10px">Signers verify their email with a one-time code before they can open the document.</p>
+    </div>
+  </aside>
+</div>
+{% endblock %}
+{% block scripts %}<script>window.BULK = {documentId:"{{ document_id }}"};</script>
+<script src="/static/js/bulk_send.js?v={{ asset_v }}"></script>{% endblock %}
