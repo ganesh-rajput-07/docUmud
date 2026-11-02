@@ -5,6 +5,8 @@ const DM = (() => {
   function errorText(body, status) {
     const d = body && body.detail;
     if (typeof d === "string") return d;
+    if (d && typeof d === "object" && !Array.isArray(d) && d.message)
+      return d.message + (d.errors ? ": " + Object.entries(d.errors).map(([k, v]) => `${k.replace(/^data\./, "")} ${v}`).join("; ") : "");
     if (Array.isArray(d)) return d.map(e => e.msg).join("; ");
     return `Request failed (${status})`;
   }
@@ -53,6 +55,7 @@ const DM = (() => {
     return node;
   }
 
+  const humanize = k => String(k || "").replace(/[_\-]+/g, " ").replace(/^./, c => c.toUpperCase());
   const badge = s => el("span", { class: `badge ${s}` }, s.replace("_", " "));
   const fmtDate = iso => new Date(iso).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 
@@ -75,5 +78,5 @@ const DM = (() => {
   const out = document.getElementById("logout");
   if (out) { requireAuth(); out.addEventListener("click", logout); }
 
-  return { api, request, blobUrl, download, el, badge, fmtDate, setToken, token, errorText, toast };
+  return { api, request, blobUrl, download, el, badge, fmtDate, setToken, token, errorText, toast, humanize };
 })();

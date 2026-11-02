@@ -128,6 +128,36 @@ def bulk_batch_page(batch_id: str, request: Request):
     return _page(request, "bulk_batch.html", batch_id=batch_id)
 
 
+@app.get("/templates")
+def templates_page(request: Request):
+    return _page(request, "templates_list.html")
+
+
+@app.get("/templates/{template_id}/design")
+def template_designer_page(template_id: str, request: Request):
+    return _page(request, "template_designer.html", template_id=template_id)
+
+
+@app.get("/envelopes")
+def envelopes_page(request: Request):
+    return _page(request, "envelopes_list.html")
+
+
+@app.get("/envelopes/new")
+def envelope_new_page(request: Request):
+    return _page(request, "envelope_new.html")
+
+
+@app.get("/envelopes/{envelope_id}")
+def envelope_detail_page(envelope_id: str, request: Request):
+    return _page(request, "envelope_detail.html", envelope_id=envelope_id)
+
+
+@app.get("/e/{token}")
+def envelope_sign_page(token: str, request: Request):
+    return _page(request, "envelope_sign.html", token=token)
+
+
 @app.get("/sign/{token}")
 def recipient_page(token: str, request: Request):
     return _page(request, "sign_document.html", token=token)

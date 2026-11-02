@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Template designer{% endblock %}
+{% block nav %}<nav><a href="/dashboard">Documents</a><a href="/templates">Templates</a><a href="/envelopes">Envelopes</a><a href="/scanner">Scan</a><a href="/settings/email">Email settings</a><a href="/guide">API guide</a></nav><button class="sm" id="logout">Sign out</button>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="row" style="flex:1"><a class="btn sm" href="/templates">‹ Templates</a>
+    <input id="tpl-name" type="text" class="title-input" maxlength="200" aria-label="Template name"></div>
+  <div class="row">
+    <button class="sm" id="roles-btn">Roles</button><button class="sm" id="defaults-btn">Default style</button>
+    <button class="sm" id="preview-btn">Preview with sample data</button><button class="sm" id="json-btn">Copy JSON</button>
+    <a class="btn sm primary" id="use-btn" href="#">Create envelope</a>
+  </div>
+</div>
+<div class="designer">
+  <aside class="palette" id="palette"></aside>
+  <section>
+    <div class="row" style="margin-bottom:8px">
+      <button class="sm" id="prev">‹</button><span id="page-label" class="muted"></span><button class="sm" id="next">›</button>
+      <span class="muted" id="hint" style="margin-left:10px"></span>
+    </div>
+    <div class="pagewrap" id="pagewrap"><img id="page-img" alt="Page"><div id="boxes"></div><div id="draft" class="fbox draft" hidden></div></div>
+  </section>
+  <aside class="props" id="props"></aside>
+</div>
+
+<dialog id="roles-dialog" class="wide">
+  <h2>Roles</h2><p class="muted">Each role is a person in the signing process. Fields belong to a role. The <b>office</b> role is you (the account owner).</p>
+  <div id="roles-body"></div>
+  <div class="row" style="margin-top:12px"><button id="role-add" class="sm">Add role</button><span style="flex:1"></span><button class="primary" id="roles-save">Save</button><button id="roles-close">Cancel</button></div>
+  <p id="roles-msg" class="msg" role="alert"></p>
+</dialog>
+<dialog id="defaults-dialog">
+  <h2>Default style</h2><p class="muted">Used by every text field unless the field sets its own.</p>
+  <label for="d-font">Font</label><select id="d-font"></select>
+  <div class="grid2"><div><label for="d-size">Font size (0 = fit the box)</label><input id="d-size" type="number" min="0" max="200"></div>
+  <div><label for="d-color">Ink colour</label><input id="d-color" type="color" style="height:40px;padding:2px"></div></div>
+  <div class="row" style="margin-top:14px"><button class="primary" id="d-save">Save</button><button id="d-close">Cancel</button></div>
+</dialog>
+{% endblock %}
+{% block scripts %}<script>window.DESIGN = {id:"{{ template_id }}"};</script><script src="/static/js/designer.js?v={{ asset_v }}"></script>{% endblock %}
