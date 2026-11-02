@@ -128,6 +128,23 @@ def bulk_batch_page(batch_id: str, request: Request):
     return _page(request, "bulk_batch.html", batch_id=batch_id)
 
 
+GUIDE_DIR = BASE.parent / "guide"
+GUIDE_PAGES = [("README", "Overview"), ("quickstart", "Quickstart"), ("templates", "Templates & fields"), ("data", "Sending data"),
+               ("api", "API reference"), ("webhooks", "Webhooks"), ("scaling", "Scaling & limits")]
+
+
+@app.get("/guide")
+@app.get("/guide/{name}")
+def guide_page(request: Request, name: str = "README"):
+    import markdown
+
+    if name not in {n for n, _ in GUIDE_PAGES} or not (GUIDE_DIR / f"{name}.md").is_file():
+        raise HTTPException(404, "Guide page not found")
+    html = markdown.markdown((GUIDE_DIR / f"{name}.md").read_text(encoding="utf-8"),
+                             extensions=["fenced_code", "tables", "toc", "sane_lists"])
+    return _page(request, "guide.html", pages=GUIDE_PAGES, current=name, body=html)
+
+
 @app.get("/templates")
 def templates_page(request: Request):
     return _page(request, "templates_list.html")
