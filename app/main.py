@@ -11,6 +11,7 @@ from app.config import settings
 from app.database import SessionLocal, initialize_database
 from app.services.rate_limit import classify, limiter
 from app.routers import api_keys, auth, bulk, datasets, documents, email_settings, fill, fonts, jobs, scanner, signing, tags, webhooks
+from app.routers import templates as templates_router
 
 BASE = Path(__file__).parent
 
@@ -32,7 +33,7 @@ app = FastAPI(
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 templates = Jinja2Templates(directory=BASE / "templates")
 
-for r in (auth, api_keys, email_settings, documents, tags, fill, datasets, bulk, fonts, jobs, scanner, signing, webhooks):
+for r in (auth, api_keys, email_settings, documents, tags, fill, datasets, bulk, fonts, jobs, scanner, signing, templates_router, webhooks):
     app.include_router(r.router)
 
 
