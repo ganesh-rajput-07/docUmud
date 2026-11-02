@@ -11,6 +11,7 @@ from app.config import settings
 from app.database import SessionLocal, initialize_database
 from app.services.rate_limit import classify, limiter
 from app.routers import api_keys, auth, bulk, datasets, documents, email_settings, fill, fonts, jobs, scanner, signing, tags, webhooks
+from app.routers import envelope_signing, envelopes, library
 from app.routers import templates as templates_router
 
 BASE = Path(__file__).parent
@@ -33,7 +34,7 @@ app = FastAPI(
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 templates = Jinja2Templates(directory=BASE / "templates")
 
-for r in (auth, api_keys, email_settings, documents, tags, fill, datasets, bulk, fonts, jobs, scanner, signing, templates_router, webhooks):
+for r in (auth, api_keys, email_settings, documents, tags, fill, datasets, bulk, fonts, jobs, scanner, signing, templates_router, envelopes, envelope_signing, library, webhooks):
     app.include_router(r.router)
 
 
@@ -59,7 +60,11 @@ async def security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
-    response.headers.setdefault("X-Frame-Options", "DENY")
+    if request.url.path.startswith("/e/") and settings.embed_allowed_origins.strip():
+        # Embedded signing: only the listed origins may frame the signing page.
+        response.headers["Content-Security-Policy"] = f"frame-ancestors {settings.embed_allowed_origins.strip()}"
+    else:
+        response.headers.setdefault("X-Frame-Options", "DENY")
     return response
 
 

@@ -116,3 +116,45 @@ def build_certificate(*, req: SignatureRequest, document_name: str, sender: str,
     out = w.doc.tobytes(garbage=3, deflate=True)
     w.doc.close()
     return out
+
+
+def build_envelope_certificate(*, env, owner: str, recipients: list, events: list, chain_valid: bool) -> bytes:
+    """Certificate of Completion for an envelope: parties, timestamps, hashes and the audit trail."""
+    w = _Writer()
+    w.text(settings.app_name, 11, True, BRAND, gap=2)
+    w.text("Certificate of Completion", 22, True, gap=6)
+    w.text("This certificate records the electronic signing of the envelope below.", 10, color=MUTED, gap=12)
+    w.rule()
+    for label, value in [
+        ("Envelope", env.name), ("Envelope ID", env.id), ("External reference", env.external_id or "-"), ("Sent by", owner),
+        ("Status", env.status), ("Signing order", env.signing_order),
+        ("Created", _fmt(env.created_at)), ("Completed", _fmt(env.completed_at) if env.completed_at else "-"),
+        ("Final document SHA-256", env.final_hash or "-"),
+        ("Audit trail", "Verified: no tampering detected" if chain_valid else "FAILED verification"),
+    ]:
+        w.row(label, value)
+    w.y += 6
+    w.rule()
+    w.text("Parties", 13, True, gap=6)
+    for r in recipients:
+        w.row(f"{r.role} ({r.kind})", f"{r.name or '-'} <{r.email or '-'}> · {r.status}"
+              + (f" · signed {_fmt(r.signed_at)}" if r.signed_at else "") + (f" · IP {r.signer_ip}" if r.signer_ip else ""))
+    w.y += 6
+    w.rule()
+    w.text("Activity", 13, True, gap=6)
+    for e in events:
+        detail = re.sub(r"final_sha256=\S+", "", e.details).strip(" ;")
+        w.ensure(26)
+        w.page.insert_text((MARGIN, w.y + 9), _fmt(e.created_at), fontsize=8.5, fontname="helv", color=MUTED)
+        w.page.insert_text((200, w.y + 9), e.event_type.replace("_", " ").capitalize(), fontsize=9, fontname="hebo", color=INK)
+        w.y += 13
+        if detail:
+            w.text(detail, 8, color=MUTED, x=200, width=345, gap=3)
+    w.y += 8
+    w.rule()
+    w.text("This is a record of electronic signature events produced by DocUMud. It documents who signed what and when, "
+           "and lets anyone compare file hashes to confirm the document has not changed. It is not a qualified electronic "
+           "signature or a certificate-backed digital signature.", 8, color=MUTED)
+    out = w.doc.tobytes(garbage=3, deflate=True)
+    w.doc.close()
+    return out

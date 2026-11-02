@@ -10,6 +10,9 @@ from app.database import SessionLocal, initialize_database
 from app.models import Document, DocumentText, Job
 from app.services.ocr_service import ocr_pdf
 from app.services.pdf_processor import ProcessingError, process_pdf
+from app.services.envelope_batch import process_next_chunk
+from app.services.envelope_mail import deliver_envelope_mail
+from app.services.envelope_service import expire_due
 from app.services.outbox import deliver_emails, schedule_reminders
 from app.services.webhook_service import deliver_due, emit
 from app.services.storage import InvalidDocument, new_path, register_pdf, resolve
@@ -109,10 +112,12 @@ def main() -> None:
             next_reminder_check = time.monotonic() + 60
             try:
                 schedule_reminders()
+                with SessionLocal() as db:
+                    expire_due(db)
             except Exception:
-                logger.exception("Reminder sweep failed")
+                logger.exception("Reminder/expiry sweep failed")
         try:
-            busy = deliver_due() + deliver_emails()
+            busy = process_next_chunk() + deliver_due() + deliver_emails() + deliver_envelope_mail()
         except Exception:
             logger.exception("Delivery loop failed")
             busy = 0

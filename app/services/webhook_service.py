@@ -18,7 +18,9 @@ from app.models import Webhook, WebhookDelivery, aware, new_id, utc_now
 
 logger = logging.getLogger("documud.webhooks")
 
-EVENTS = ("signature.signed", "signature.cancelled", "job.completed", "job.failed")
+EVENTS = ("signature.signed", "signature.cancelled", "job.completed", "job.failed",
+          "envelope.created", "envelope.sent", "envelope.completed", "envelope.declined", "envelope.cancelled",
+          "envelope.expired", "recipient.signed", "batch.completed")
 BACKOFF_SECONDS = (30, 120, 600, 3600, 21600)  # delay before retry n+1
 
 

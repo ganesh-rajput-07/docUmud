@@ -231,6 +231,13 @@ def signed_email(*, sender: str, signer: str, filename: str, to_signer: bool) ->
     return subject, "\n\n".join(lines) + f"\n\n— {footer}", _html(subject, lines, None, footer)
 
 
+def completed_email(*, sender: str, name: str) -> tuple[str, str, str]:
+    subject = f"Completed: {name}"
+    lines = [f"“{name}” has been signed by everyone.", "The completed document is attached for your records."]
+    footer = f"Sent by {settings.app_name} on behalf of {sender}."
+    return subject, "\n\n".join(lines) + f"\n\n— {footer}", _html(subject, lines, None, footer)
+
+
 def otp_email(*, sender: str, filename: str, code: str, minutes: int) -> tuple[str, str, str]:
     subject = f"Your verification code: {code}"
     lines = [f"Use this code to open “{filename}” sent by {sender}:", f"{code[:3]} {code[3:]}",

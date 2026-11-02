@@ -61,9 +61,15 @@ def validate_pdf(path: Path) -> int:
 
 
 def new_path(folder: str) -> tuple[Path, str]:
-    """Return (absolute path, relative path) for a fresh PDF in `folder`."""
-    rel = f"{folder}/{uuid.uuid4()}.pdf"
-    return settings.storage_root / rel, rel
+    """Return (absolute path, relative path) for a fresh PDF in `folder`.
+
+    Files are sharded by the first characters of their id (results/ab/cd/<id>.pdf) so no single
+    directory ever holds millions of entries."""
+    uid = str(uuid.uuid4())
+    rel = f"{folder}/{uid[:2]}/{uid[2:4]}/{uid}.pdf"
+    path = settings.storage_root / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path, rel
 
 
 def register_pdf(
