@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Envelopes{% endblock %}
+{% block nav %}<nav><a href="/dashboard">Documents</a><a href="/templates">Templates</a><a href="/envelopes">Envelopes</a><a href="/scanner">Scan</a><a href="/settings/email">Email settings</a><a href="/guide">API guide</a></nav><button class="sm" id="logout">Sign out</button>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Envelopes</h1><p>Every document sent for signing, with its template, data and recipients.</p></div>
+  <div class="row"><a class="btn" href="/templates">Templates</a><a class="btn primary" href="/envelopes/new">New envelope</a></div>
+</div>
+<div class="stats stats6" id="stats"></div>
+<div class="card">
+  <div class="filters">
+    <input type="search" id="q" placeholder="Search name, reference or email…" aria-label="Search">
+    <select id="f-template" aria-label="Template"></select>
+    <label class="inline">From <input type="date" id="f-after"></label>
+    <label class="inline">To <input type="date" id="f-before"></label>
+    <button class="sm" id="clear">Clear</button>
+  </div>
+  <div id="bulkbar" class="bulkbar" hidden><b id="sel-count"></b><button class="sm" id="b-remind">Remind</button><button class="sm danger" id="b-cancel">Cancel</button><button class="sm" id="b-none">Clear selection</button></div>
+  <div id="rows"></div>
+  <div class="row" style="justify-content:center;margin-top:12px"><button id="more" hidden>Load more</button></div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/js/envelopes_list.js?v={{ asset_v }}"></script>{% endblock %}

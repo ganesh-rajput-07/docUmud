@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Envelope{% endblock %}
+{% block nav %}<nav><a href="/dashboard">Documents</a><a href="/templates">Templates</a><a href="/envelopes">Envelopes</a><a href="/scanner">Scan</a><a href="/settings/email">Email settings</a><a href="/guide">API guide</a></nav><button class="sm" id="logout">Sign out</button>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="row"><h1 id="title" style="margin:0">Envelope</h1><span id="status"></span></div><p id="sub" class="muted"></p></div>
+  <div class="row" id="actions"></div>
+</div>
+<div id="banner" class="banner" hidden></div>
+<div class="card"><h2>Recipients</h2><div id="recipients"></div></div>
+<div class="grid2c">
+  <div class="card"><h2>Fields</h2><div id="fields"></div></div>
+  <div class="card"><h2>Activity</h2><div id="events"></div></div>
+</div>
+<div class="card" id="mail-card" hidden><h2>Emails</h2><div id="mail"></div></div>
+<dialog id="url-dialog"><h2>Signing link</h2><p class="muted" id="url-who"></p><input type="text" id="url-box" readonly><div class="row" style="margin-top:12px"><button class="primary" id="url-copy">Copy</button><a class="btn" id="url-open" target="_blank" rel="noopener">Open</a><button id="url-close">Close</button></div></dialog>
+{% endblock %}
+{% block scripts %}<script>window.ENV = {id:"{{ envelope_id }}"};</script><script src="/static/js/envelope_detail.js?v={{ asset_v }}"></script>{% endblock %}

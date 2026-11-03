@@ -2,7 +2,7 @@ const $ = id => document.getElementById(id);
 const { el, badge, fmtDate, api, toast } = DM;
 const state = { docs: [], reqs: [], jobs: [] };
 const SERVICE = { ocr: "OCR", pdf_tagging: "Accessibility tagging" };
-const SOURCE = { batch: "Batch copy", uploaded: "Uploaded", scanned: "Scanned", signed: "Signed", tagged: "Accessible", ocr: "OCR", annotated: "Annotated", filled: "Filled" };
+const SOURCE = { envelope: "Signed envelope", batch: "Batch copy", uploaded: "Uploaded", scanned: "Scanned", signed: "Signed", tagged: "Accessible", ocr: "OCR", annotated: "Annotated", filled: "Filled" };
 
 // Skip re-rendering when polled data is unchanged, and never rebuild the table under an open menu.
 const seen = {};
@@ -53,7 +53,7 @@ const link = (label, href) => el("a", { href }, label);
 
 // ---------- stats ----------
 function stats() {
-  $("st-docs").textContent = state.docs.length;
+  $("st-docs").textContent = state.docsTotal ?? state.docs.length;
   $("st-pending").textContent = state.reqs.filter(r => r.status === "pending").length;
   $("st-signed").textContent = state.reqs.filter(r => r.status === "signed").length;
   $("st-jobs").textContent = state.jobs.filter(j => ["queued", "processing"].includes(j.status)).length;
@@ -69,8 +69,8 @@ const dl = (id, name) => DM.download(`/documents/${id}/download`, name).catch(fa
 function renderDocs() {
   if (menuOpen()) { docsDeferred = true; return; }
   docsDeferred = false;
-  const q = $("doc-filter").value.trim().toLowerCase();
-  const docs = state.docs.filter(d => d.filename.toLowerCase().includes(q));
+  const q = $("doc-filter").value.trim();
+  const docs = state.docs;                      // already filtered by the server
   table("docs", ["Name", "Pages", "Type", "Added", ""], docs.map(d => el("tr", {},
     el("td", { class: "name", title: d.filename }, d.filename), el("td", {}, String(d.pages)),
     el("td", {}, el("span", { class: "badge neutral" }, SOURCE[d.source] || d.source)), el("td", {}, fmtDate(d.created_at)),
@@ -81,6 +81,7 @@ function renderDocs() {
         item("Request signature…", () => openRequest(d)),
         link("Send in bulk…", `/documents/${d.id}/bulk`),
         el("hr"),
+        link("Make a template…", `/templates?new=${d.id}`),
         link("Fill from data", `/documents/${d.id}/fill`),
         link("Tag data", `/documents/${d.id}/tagger`),
         item("Run OCR", () => enqueue(`/documents/${d.id}/ocr`, "OCR")),
@@ -89,8 +90,22 @@ function renderDocs() {
       ])))),
     q ? ["No matches", "Try a different search."] : ["No documents yet", "Upload a PDF or scan a paper document to get started."]);
 }
-async function loadDocs() { state.docs = await api("/documents"); if (changed("docs", state.docs)) renderDocs(); stats(); }
-$("doc-filter").addEventListener("input", renderDocs);
+// Documents are loaded a page at a time with server-side search, so the tab stays fast for very large libraries.
+const docPaging = { cursor: null, hasMore: false, q: "" };
+async function loadDocs(more = false) {
+  if (!more && state.docs.length > 50 && docPaging.q === $("doc-filter").value.trim()) return;   // user loaded extra pages: don't collapse them on a poll
+  const q = $("doc-filter").value.trim(), params = new URLSearchParams({ limit: 50, include_total: !more });
+  if (q) params.set("q", q); if (more && docPaging.cursor) params.set("cursor", docPaging.cursor);
+  const r = await api(`/v1/documents?${params}`);
+  state.docs = more ? [...state.docs, ...r.data] : r.data;
+  if (!more) state.docsTotal = q ? state.docsTotal : r.total;
+  Object.assign(docPaging, { cursor: r.next_cursor, hasMore: r.has_more, q });
+  if (changed("docs", [state.docs, docPaging.hasMore])) renderDocs();
+  $("docs-more").hidden = !docPaging.hasMore; stats();
+}
+let docTimer;
+$("doc-filter").addEventListener("input", () => { clearTimeout(docTimer); docTimer = setTimeout(() => { state.docs = []; loadDocs().catch(fail); }, 300); });
+$("docs-more").addEventListener("click", () => loadDocs(true).catch(fail));
 
 // ---------- upload ----------
 const drop = $("dropzone"), fileInput = $("upload-file");
