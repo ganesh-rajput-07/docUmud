@@ -204,3 +204,4 @@ def document_text(
         "document_id": doc.id, "source": "pdf", "pages": pages,
         "has_text": any(p["text"] for p in pages),
     }
+

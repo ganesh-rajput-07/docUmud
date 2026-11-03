@@ -19,6 +19,7 @@ class Style:
     color: str = "#111111"
     align: str = "left"          # left | center | right
     max_font_size: int = 0       # 0 = limited only by box height
+    valign: str = "middle"       # middle | top (multi-line fields start at the top)
 
 
 @dataclass
@@ -63,7 +64,7 @@ def _draw(page: pymupdf.Page, font: pymupdf.Font, fontname: str, tag: DocumentTa
             lines[-1] = _ellipsize(font, lines[-1], size, w)
 
     block_h = line_h(size) * (1 if len(lines) == 1 else 1.05 * len(lines))
-    y = PAD + (h - block_h) / 2 + asc * size              # baseline of first line, displayed coords
+    y = (PAD if style.valign == "top" else PAD + (h - block_h) / 2) + asc * size   # first baseline, displayed coords
     for ln in lines:
         tl = font.text_length(ln, size)
         x = PAD + {"left": 0, "center": (w - tl) / 2, "right": w - tl}[style.align]

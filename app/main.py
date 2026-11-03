@@ -11,6 +11,8 @@ from app.config import settings
 from app.database import SessionLocal, initialize_database
 from app.services.rate_limit import classify, limiter
 from app.routers import api_keys, auth, bulk, datasets, documents, email_settings, fill, fonts, jobs, scanner, signing, tags, webhooks
+from app.routers import envelope_signing, envelopes, library
+from app.routers import templates as templates_router
 
 BASE = Path(__file__).parent
 
@@ -32,7 +34,7 @@ app = FastAPI(
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 templates = Jinja2Templates(directory=BASE / "templates")
 
-for r in (auth, api_keys, email_settings, documents, tags, fill, datasets, bulk, fonts, jobs, scanner, signing, webhooks):
+for r in (auth, api_keys, email_settings, documents, tags, fill, datasets, bulk, fonts, jobs, scanner, signing, templates_router, envelopes, envelope_signing, library, webhooks):
     app.include_router(r.router)
 
 
@@ -58,7 +60,11 @@ async def security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
-    response.headers.setdefault("X-Frame-Options", "DENY")
+    if request.url.path.startswith("/e/") and settings.embed_allowed_origins.strip():
+        # Embedded signing: only the listed origins may frame the signing page.
+        response.headers["Content-Security-Policy"] = f"frame-ancestors {settings.embed_allowed_origins.strip()}"
+    else:
+        response.headers.setdefault("X-Frame-Options", "DENY")
     return response
 
 
@@ -120,6 +126,53 @@ def bulk_send_page(document_id: str, request: Request):
 @app.get("/sends/{batch_id}")
 def bulk_batch_page(batch_id: str, request: Request):
     return _page(request, "bulk_batch.html", batch_id=batch_id)
+
+
+GUIDE_DIR = BASE.parent / "guide"
+GUIDE_PAGES = [("README", "Overview"), ("quickstart", "Quickstart"), ("templates", "Templates & fields"), ("data", "Sending data"),
+               ("api", "API reference"), ("webhooks", "Webhooks"), ("scaling", "Scaling & limits")]
+
+
+@app.get("/guide")
+@app.get("/guide/{name}")
+def guide_page(request: Request, name: str = "README"):
+    import markdown
+
+    if name not in {n for n, _ in GUIDE_PAGES} or not (GUIDE_DIR / f"{name}.md").is_file():
+        raise HTTPException(404, "Guide page not found")
+    html = markdown.markdown((GUIDE_DIR / f"{name}.md").read_text(encoding="utf-8"),
+                             extensions=["fenced_code", "tables", "toc", "sane_lists"])
+    return _page(request, "guide.html", pages=GUIDE_PAGES, current=name, body=html)
+
+
+@app.get("/templates")
+def templates_page(request: Request):
+    return _page(request, "templates_list.html")
+
+
+@app.get("/templates/{template_id}/design")
+def template_designer_page(template_id: str, request: Request):
+    return _page(request, "template_designer.html", template_id=template_id)
+
+
+@app.get("/envelopes")
+def envelopes_page(request: Request):
+    return _page(request, "envelopes_list.html")
+
+
+@app.get("/envelopes/new")
+def envelope_new_page(request: Request):
+    return _page(request, "envelope_new.html")
+
+
+@app.get("/envelopes/{envelope_id}")
+def envelope_detail_page(envelope_id: str, request: Request):
+    return _page(request, "envelope_detail.html", envelope_id=envelope_id)
+
+
+@app.get("/e/{token}")
+def envelope_sign_page(token: str, request: Request):
+    return _page(request, "envelope_sign.html", token=token)
 
 
 @app.get("/sign/{token}")

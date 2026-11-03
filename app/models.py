@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -307,3 +307,223 @@ class SignerSession(Base):
     access_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+# ======================= Templates & envelopes =======================
+# A Template is designed once by the office: a base PDF plus typed fields (page coordinates are
+# fractions 0-1, top-left origin, pages are 1-based) assigned to roles. An Envelope is one use of a
+# template: the document, a frozen copy of the fields, the data, the recipients and the audit trail.
+
+
+class Template(Base):
+    __tablename__ = "templates"
+    __table_args__ = (Index("ix_templates_user_status", "user_id", "status"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    description: Mapped[str] = mapped_column(Text, default="")
+    document_id: Mapped[str] = mapped_column(ForeignKey("documents.id"))
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    status: Mapped[str] = mapped_column(String(12), default="active")  # active | archived
+    roles: Mapped[str] = mapped_column(Text, default="[]")      # JSON [{id,label,kind,order}]
+    defaults: Mapped[str] = mapped_column(Text, default="{}")   # JSON default style for text fields
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+
+class TemplateField(Base):
+    __tablename__ = "template_fields"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    template_id: Mapped[str] = mapped_column(ForeignKey("templates.id"), index=True)
+    name: Mapped[str] = mapped_column(String(80))          # the key used in API data
+    label: Mapped[str] = mapped_column(String(120), default="")
+    type: Mapped[str] = mapped_column(String(30))
+    role: Mapped[str] = mapped_column(String(40), default="office")
+    page: Mapped[int] = mapped_column(Integer, default=1)  # 1-based
+    x: Mapped[float] = mapped_column(Float)
+    y: Mapped[float] = mapped_column(Float)
+    w: Mapped[float] = mapped_column(Float)
+    h: Mapped[float] = mapped_column(Float)
+    required: Mapped[bool] = mapped_column(Boolean, default=True)
+    default_value: Mapped[str] = mapped_column(Text, default="")
+    options: Mapped[str] = mapped_column(Text, default="[]")      # JSON list (dropdown / radio choices)
+    option: Mapped[str] = mapped_column(String(120), default="")  # radio: the choice this box represents
+    aliases: Mapped[str] = mapped_column(Text, default="[]")      # JSON list of alternative data keys
+    style: Mapped[str] = mapped_column(Text, default="{}")        # JSON
+    validation: Mapped[str] = mapped_column(Text, default="{}")   # JSON
+    position: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class Envelope(Base):
+    __tablename__ = "envelopes"
+    __table_args__ = (
+        Index("ix_envelopes_user_status_created", "user_id", "status", "created_at"),
+        Index("ix_envelopes_user_created", "user_id", "created_at"),
+        UniqueConstraint("user_id", "external_id", name="uq_envelopes_user_external"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    template_id: Mapped[str | None] = mapped_column(ForeignKey("templates.id"), nullable=True, index=True)
+    template_version: Mapped[int] = mapped_column(Integer, default=1)
+    document_id: Mapped[str] = mapped_column(ForeignKey("documents.id"))
+    name: Mapped[str] = mapped_column(String(200))
+    message: Mapped[str] = mapped_column(Text, default="")
+    # draft | in_progress | completed | declined | cancelled | expired
+    status: Mapped[str] = mapped_column(String(14), default="draft")
+    signing_order: Mapped[str] = mapped_column(String(10), default="sequential")  # sequential | parallel
+    external_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    metadata_json: Mapped[str] = mapped_column(Text, default="{}")
+    return_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    final_document_id: Mapped[str | None] = mapped_column(ForeignKey("documents.id"), nullable=True)
+    final_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    rev: Mapped[int] = mapped_column(Integer, default=0)  # bumps on every change; keys render caches
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class EnvelopeRecipient(Base):
+    __tablename__ = "envelope_recipients"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    envelope_id: Mapped[str] = mapped_column(ForeignKey("envelopes.id"), index=True)
+    role: Mapped[str] = mapped_column(String(40))
+    kind: Mapped[str] = mapped_column(String(10), default="signer")  # office | signer | cc
+    name: Mapped[str] = mapped_column(String(120), default="")
+    email: Mapped[str] = mapped_column(String(255), default="")
+    order: Mapped[int] = mapped_column(Integer, default=1)
+    # waiting (not their turn) | pending | viewed | signed | declined
+    status: Mapped[str] = mapped_column(String(10), default="pending")
+    deliver: Mapped[str] = mapped_column(String(6), default="email")  # email | none (embedded signing)
+    verify: Mapped[bool] = mapped_column(Boolean, default=True)       # require an emailed code before signing
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    viewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    signed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    declined_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    signer_ip: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+
+class EnvelopeField(Base):
+    """Frozen copy of a template field for one envelope, plus its value."""
+
+    __tablename__ = "envelope_fields"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    envelope_id: Mapped[str] = mapped_column(ForeignKey("envelopes.id"), index=True)
+    recipient_id: Mapped[str | None] = mapped_column(ForeignKey("envelope_recipients.id"), nullable=True, index=True)
+    template_field_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    name: Mapped[str] = mapped_column(String(80))
+    label: Mapped[str] = mapped_column(String(120), default="")
+    type: Mapped[str] = mapped_column(String(30))
+    role: Mapped[str] = mapped_column(String(40))
+    page: Mapped[int] = mapped_column(Integer, default=1)
+    x: Mapped[float] = mapped_column(Float)
+    y: Mapped[float] = mapped_column(Float)
+    w: Mapped[float] = mapped_column(Float)
+    h: Mapped[float] = mapped_column(Float)
+    required: Mapped[bool] = mapped_column(Boolean, default=True)
+    options: Mapped[str] = mapped_column(Text, default="[]")
+    option: Mapped[str] = mapped_column(String(120), default="")
+    style: Mapped[str] = mapped_column(Text, default="{}")
+    validation: Mapped[str] = mapped_column(Text, default="{}")
+    value: Mapped[str] = mapped_column(Text, default="")
+    sig_path: Mapped[str | None] = mapped_column(Text, nullable=True)  # signature / initials PNG
+    locked: Mapped[bool] = mapped_column(Boolean, default=False)       # pre-filled by the sender: signer can't edit
+    filled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class EnvelopeEvent(Base):
+    """Append-only, hash-chained audit trail per envelope."""
+
+    __tablename__ = "envelope_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    envelope_id: Mapped[str] = mapped_column(ForeignKey("envelopes.id"), index=True)
+    recipient_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    event_type: Mapped[str] = mapped_column(String(40))
+    details: Mapped[str] = mapped_column(Text, default="")
+    prev_hash: Mapped[str] = mapped_column(String(64))
+    event_hash: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class RecipientSession(Base):
+    """Emailed verification code for an envelope recipient, and the access token issued once verified."""
+
+    __tablename__ = "recipient_sessions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    recipient_id: Mapped[str] = mapped_column(ForeignKey("envelope_recipients.id"), index=True)
+    code_hash: Mapped[str] = mapped_column(String(64))
+    code_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    access_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class EnvelopeMail(Base):
+    """Outbox for envelope emails (invites, reminders, completed copies), sent by the worker."""
+
+    __tablename__ = "envelope_mail"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)  # sender whose mailbox is used
+    envelope_id: Mapped[str] = mapped_column(ForeignKey("envelopes.id"), index=True)
+    recipient_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    kind: Mapped[str] = mapped_column(String(12))  # invite | reminder | completed
+    to_email: Mapped[str] = mapped_column(String(255))
+    status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    next_attempt_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class IdempotencyKey(Base):
+    """Makes POST /v1/envelopes safe to retry: the same key returns the same envelope."""
+
+    __tablename__ = "idempotency_keys"
+    __table_args__ = (UniqueConstraint("user_id", "key", name="uq_idem_user_key"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    key: Mapped[str] = mapped_column(String(200))
+    request_hash: Mapped[str] = mapped_column(String(64))
+    envelope_id: Mapped[str] = mapped_column(ForeignKey("envelopes.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class SignatureProfile(Base):
+    """The office's saved signature/initials, applied automatically to office fields."""
+
+    __tablename__ = "signature_profiles"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), unique=True)
+    signature_path: Mapped[str] = mapped_column(Text)
+    initials_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+
+class EnvelopeBatch(Base):
+    """A bulk request: items live in a JSON file, the worker creates envelopes from them in chunks."""
+
+    __tablename__ = "envelope_batches"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    template_id: Mapped[str] = mapped_column(ForeignKey("templates.id"))
+    status: Mapped[str] = mapped_column(String(12), default="queued", index=True)  # queued | processing | completed
+    total: Mapped[int] = mapped_column(Integer, default=0)
+    created_count: Mapped[int] = mapped_column(Integer, default=0)
+    failed_count: Mapped[int] = mapped_column(Integer, default=0)
+    options: Mapped[str] = mapped_column(Text, default="{}")  # JSON shared options for every item
+    payload_path: Mapped[str] = mapped_column(Text)           # relative to storage_root
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
