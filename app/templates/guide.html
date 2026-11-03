@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}API guide{% endblock %}
+{% block nav %}<nav><a href="/dashboard">Dashboard</a><a href="/guide" aria-current="page">API guide</a><a href="/docs" target="_blank" rel="noopener">Interactive reference</a></nav>{% endblock %}
+{% block content %}
+<div class="guide-layout">
+  <nav class="guide-nav" aria-label="Guide">{% for slug, label in pages %}<a href="/guide/{{ slug }}"{% if slug == current %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
+  <article class="guide card">{{ body|safe }}</article>
+</div>
+{% endblock %}

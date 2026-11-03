@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     ocr_max_pages: int = 30
     max_font_kb: int = 2048
     max_user_fonts: int = 10
+    # Origins allowed to show the recipient signing page (/e/...) in an iframe, space-separated, e.g. "https://app.example.com".
+    embed_allowed_origins: str = ""
+    batch_max_items: int = 2000          # envelopes per /v1/envelopes/batch request
+    batch_chunk: int = 20                # envelopes the worker creates per loop turn
     max_dataset_mb: int = 10
     max_dataset_rows: int = 5000
     max_dataset_columns: int = 100
@@ -58,5 +62,5 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-for _folder in ("uploads", "scans", "signatures", "results", "tmp", "fonts", "datasets"):
+for _folder in ("uploads", "scans", "signatures", "results", "tmp", "fonts", "datasets", "batches"):
     (settings.storage_root / _folder).mkdir(parents=True, exist_ok=True)

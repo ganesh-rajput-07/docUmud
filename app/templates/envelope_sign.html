@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Review &amp; sign{% endblock %}
+{% block content %}
+<div id="state" class="card narrow-wide" hidden><h1 id="state-title"></h1><p id="state-text" class="muted"></p><div class="row" id="state-actions"></div></div>
+
+<div id="otp-card" class="card narrow-wide" hidden>
+  <h2>Verify your email</h2>
+  <p class="muted" id="otp-text">We'll email a 6-digit code to confirm it's you.</p>
+  <div class="row"><button type="button" class="primary" id="otp-send">Send me a code</button></div>
+  <div id="otp-entry" hidden style="margin-top:14px"><label for="otp-code">Enter the 6-digit code</label>
+    <div class="row"><input id="otp-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" style="max-width:160px;letter-spacing:.2em;font-size:18px"><button type="button" class="primary" id="otp-verify">Verify</button></div></div>
+  <p id="otp-msg" class="msg" role="status"></p>
+</div>
+
+<div id="doc" hidden>
+  <div class="sp-bar">
+    <div style="min-width:0"><b id="env-name" class="name"></b><div class="muted" id="env-from"></div></div>
+    <div class="sp-progress"><span id="progress"></span><div class="mini" style="width:90px"><i id="progress-bar" style="width:0"></i></div></div>
+    <div class="row"><button id="next-field">Next field</button><button class="primary" id="finish" disabled>Finish</button></div>
+  </div>
+  <p id="env-msg" class="muted" style="text-align:center;margin:0 0 12px" hidden></p>
+  <div id="pages" class="sp-wrap"></div>
+  <div class="row" style="justify-content:center;margin:20px"><button class="sm" id="decline">Decline to sign</button></div>
+</div>
+
+<dialog id="finish-dialog">
+  <h2>Finish signing</h2>
+  <p class="muted" id="finish-summary"></p>
+  <label class="check-row" style="align-items:flex-start"><input type="checkbox" id="consent" style="margin-top:4px"> <span>I have reviewed this document and agree to sign it electronically. I understand my electronic signature is as binding as a handwritten one.</span></label>
+  <p id="finish-msg" class="msg" role="alert"></p>
+  <div class="row"><button class="primary" id="finish-go">Sign and finish</button><button id="finish-cancel">Back</button></div>
+</dialog>
+{% endblock %}
+{% block scripts %}<script>window.SIGN_TOKEN = "{{ token }}";</script>
+<script src="/static/js/sigpad.js?v={{ asset_v }}"></script><script src="/static/js/envelope_sign.js?v={{ asset_v }}"></script>{% endblock %}

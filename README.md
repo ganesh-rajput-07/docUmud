@@ -1,5 +1,7 @@
 # DocUMud
 
+**New:** design a reusable template once (names, amounts, dates, checkboxes, signatures, assigned to roles), fill it from any JSON, and collect signatures from the office and anyone else. Full developer documentation is in [`guide/`](guide/README.md) (also served at `/guide` when the app is running): quickstart, template/field reference, data formats, API reference, webhooks, and measured scaling notes.
+
 Document workspace: scan, upload, sign (yourself, in person, or by email link), track signers, and auto-tag PDFs for accessibility.
 
 ## Run
